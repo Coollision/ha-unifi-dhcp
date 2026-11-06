@@ -7,8 +7,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-import voluptuous as vol
 
+from custom_components.unifi_dhcp.config_flow import vol
 from custom_components.unifi_dhcp.const import (
     CONF_NETWORKS,
     CONF_UNIFI_ENTRY_ID,
