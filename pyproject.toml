@@ -1,0 +1,45 @@
+[project]
+name = "ha-unifi-dhcp"
+version = "0.1.0"
+description = "Enrich Home Assistant's DHCP discovery with UniFi clients"
+requires-python = ">=3.14"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "ASYNC", # async pitfalls
+  "B",     # bugbear
+  "BLE",   # blind except
+  "C4",    # comprehensions
+  "E",
+  "F",
+  "I",     # isort
+  "LOG",   # logging usage
+  "PL",    # pylint
+  "PT",    # pytest style
+  "RUF",
+  "SIM",
+  "T20",   # no print
+  "TC",    # type-checking imports
+  "UP",
+  "W",
+]
+ignore = [
+  "PLR0913", # many arguments are fine in tests/fixtures
+  "PLR2004", # magic values in tests
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+force-sort-within-sections = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Type-only imports are kept at runtime in tests: pytest resolves fixtures by name.
+"tests/*" = ["TC"]

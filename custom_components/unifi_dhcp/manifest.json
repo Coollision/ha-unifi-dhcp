@@ -1,0 +1,14 @@
+{
+  "domain": "unifi_dhcp",
+  "name": "UniFi DHCP enrichment",
+  "codeowners": ["@Coollision"],
+  "config_flow": true,
+  "dependencies": ["dhcp", "unifi"],
+  "documentation": "https://github.com/Coollision/ha-unifi-dhcp",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/Coollision/ha-unifi-dhcp/issues",
+  "loggers": ["custom_components.unifi_dhcp"],
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,20 @@
+name: Release
+
+# Conventional commits on main (feat:, fix:, ...) keep a "release PR" up to date.
+# Merging it tags the release; HACS installs the integration from that tag.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

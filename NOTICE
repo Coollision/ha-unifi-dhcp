@@ -1,0 +1,13 @@
+UniFi DHCP enrichment
+Copyright 2026 Youri Declerck
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This is an unofficial community project. It is not affiliated with, endorsed
+by, or sponsored by Ubiquiti Inc., Home Assistant, Nabu Casa, Inc. or the Open
+Home Foundation. "UniFi" and "Ubiquiti" are trademarks of Ubiquiti Inc.;
+"Home Assistant" is a trademark of its respective owner. They are used here
+only to describe compatibility.
+
+This integration reads data that the built-in UniFi Network integration already
+holds in memory. It sends nothing to any third party.

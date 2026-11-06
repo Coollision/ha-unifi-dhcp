@@ -1,0 +1,63 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "UniFi DHCP enrichment",
+        "description": "Choose the UniFi Network integration to read clients from. Their IP address, MAC address and hostname are handed to Home Assistant's DHCP discovery, so devices on networks Home Assistant cannot see directly are discovered too.",
+        "data": {
+          "unifi_entry_id": "UniFi Network"
+        }
+      },
+      "networks": {
+        "title": "Networks to enrich from",
+        "description": "Select the UniFi networks whose clients should be fed to DHCP discovery. Nothing is selected by default.",
+        "data": {
+          "networks": "Networks"
+        }
+      }
+    },
+    "error": {
+      "no_networks_selected": "Select at least one network."
+    },
+    "abort": {
+      "already_configured": "This UniFi Network integration is already set up.",
+      "no_unifi_entry": "No loaded UniFi Network integration was found. Set it up first.",
+      "no_networks": "No networks could be found for this UniFi Network integration."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Networks to enrich from",
+        "description": "Select the UniFi networks whose clients should be fed to DHCP discovery.",
+        "data": {
+          "networks": "Networks"
+        }
+      }
+    },
+    "error": {
+      "no_networks_selected": "Select at least one network."
+    },
+    "abort": {
+      "no_unifi_entry": "No loaded UniFi Network integration was found. Set it up first."
+    }
+  },
+  "exceptions": {
+    "unifi_entry_missing": {
+      "message": "The linked UniFi Network integration no longer exists. Remove this entry or set up UniFi Network again."
+    },
+    "unifi_not_loaded": {
+      "message": "The UniFi Network integration \"{title}\" is not loaded yet."
+    }
+  },
+  "issues": {
+    "unifi_unavailable": {
+      "title": "UniFi is unavailable",
+      "description": "The UniFi Network integration \"{title}\" is not reachable, so DHCP enrichment is paused. It resumes by itself when UniFi is back."
+    },
+    "networks_missing": {
+      "title": "Selected UniFi networks no longer exist",
+      "description": "These networks are selected but UniFi no longer lists them: {networks}. They are skipped. Open the integration options and update the selection."
+    }
+  }
+}
