@@ -14,8 +14,6 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
-    ConfigEntrySelector,
-    ConfigEntrySelectorConfig,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -121,8 +119,16 @@ class UnifiDhcpConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_UNIFI_ENTRY_ID): ConfigEntrySelector(
-                        ConfigEntrySelectorConfig(integration=UNIFI_DOMAIN)
+                    vol.Required(CONF_UNIFI_ENTRY_ID): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=entry.entry_id, label=entry.title
+                                )
+                                for entry in loaded
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
                     )
                 }
             ),

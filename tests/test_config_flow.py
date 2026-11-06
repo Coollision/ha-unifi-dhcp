@@ -41,6 +41,9 @@ async def test_full_flow_with_no_preselected_networks(
         DOMAIN, context={"source": "user"}
     )
     assert result["step_id"] == "user"
+    schema = result["data_schema"].schema
+    entries = schema[next(key for key in schema if key == CONF_UNIFI_ENTRY_ID)]
+    assert entries.config["options"] == [{"value": UNIFI_ENTRY_ID, "label": "UniFi"}]
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_UNIFI_ENTRY_ID: UNIFI_ENTRY_ID}
