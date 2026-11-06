@@ -6,6 +6,9 @@
         "description": "Choose the UniFi Network integration to read clients from. Their IP address, MAC address and hostname are handed to Home Assistant's DHCP discovery, so devices on networks Home Assistant cannot see directly are discovered too.",
         "data": {
           "unifi_entry_id": "UniFi Network"
+        },
+        "data_description": {
+          "unifi_entry_id": "The UniFi Network integration whose clients are used."
         }
       },
       "networks": {
@@ -13,6 +16,9 @@
         "description": "Select the UniFi networks whose clients should be fed to DHCP discovery. Nothing is selected by default.",
         "data": {
           "networks": "Networks"
+        },
+        "data_description": {
+          "networks": "Clients on these networks are fed to DHCP discovery. At least one is required."
         }
       }
     },
@@ -32,6 +38,9 @@
         "description": "Select the UniFi networks whose clients should be fed to DHCP discovery.",
         "data": {
           "networks": "Networks"
+        },
+        "data_description": {
+          "networks": "Clients on these networks are fed to DHCP discovery. At least one is required."
         }
       }
     },

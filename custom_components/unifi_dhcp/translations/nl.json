@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "UniFi DHCP-verrijking",
+        "description": "Kies de UniFi Network-integratie waaruit clients worden gelezen. Hun IP-adres, MAC-adres en hostnaam worden doorgegeven aan de DHCP-detectie van Home Assistant, zodat ook apparaten op netwerken die Home Assistant niet rechtstreeks ziet worden ontdekt.",
+        "data": {
+          "unifi_entry_id": "UniFi Network"
+        },
+        "data_description": {
+          "unifi_entry_id": "De UniFi Network-integratie waarvan de clients worden gebruikt."
+        }
+      },
+      "networks": {
+        "title": "Netwerken om uit te verrijken",
+        "description": "Selecteer de UniFi-netwerken waarvan de clients aan de DHCP-detectie moeten worden doorgegeven. Standaard is er niets geselecteerd.",
+        "data": {
+          "networks": "Netwerken"
+        },
+        "data_description": {
+          "networks": "Clients op deze netwerken worden doorgegeven aan de DHCP-detectie. Minstens één netwerk is verplicht."
+        }
+      }
+    },
+    "error": {
+      "no_networks_selected": "Selecteer minstens één netwerk."
+    },
+    "abort": {
+      "already_configured": "Deze UniFi Network-integratie is al ingesteld.",
+      "no_unifi_entry": "Er is geen geladen UniFi Network-integratie gevonden. Stel die eerst in.",
+      "no_networks": "Er zijn geen netwerken gevonden voor deze UniFi Network-integratie."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Netwerken om uit te verrijken",
+        "description": "Selecteer de UniFi-netwerken waarvan de clients aan de DHCP-detectie moeten worden doorgegeven.",
+        "data": {
+          "networks": "Netwerken"
+        },
+        "data_description": {
+          "networks": "Clients op deze netwerken worden doorgegeven aan de DHCP-detectie. Minstens één netwerk is verplicht."
+        }
+      }
+    },
+    "error": {
+      "no_networks_selected": "Selecteer minstens één netwerk."
+    },
+    "abort": {
+      "no_unifi_entry": "Er is geen geladen UniFi Network-integratie gevonden. Stel die eerst in."
+    }
+  },
+  "exceptions": {
+    "unifi_entry_missing": {
+      "message": "De gekoppelde UniFi Network-integratie bestaat niet meer. Verwijder deze invoer of stel UniFi Network opnieuw in."
+    },
+    "unifi_not_loaded": {
+      "message": "De UniFi Network-integratie \"{title}\" is nog niet geladen."
+    }
+  },
+  "issues": {
+    "unifi_unavailable": {
+      "title": "UniFi is niet beschikbaar",
+      "description": "De UniFi Network-integratie \"{title}\" is niet bereikbaar, dus de DHCP-verrijking ligt stil. Ze hervat vanzelf zodra UniFi terug is."
+    },
+    "networks_missing": {
+      "title": "Geselecteerde UniFi-netwerken bestaan niet meer",
+      "description": "Deze netwerken zijn geselecteerd maar UniFi vermeldt ze niet meer: {networks}. Ze worden overgeslagen. Open de opties van de integratie en pas de selectie aan."
+    }
+  }
+}
