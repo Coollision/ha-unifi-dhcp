@@ -57,6 +57,9 @@
     },
     "unifi_not_loaded": {
       "message": "The UniFi Network integration \"{title}\" is not loaded yet."
+    },
+    "no_loaded_entry": {
+      "message": "There is no loaded UniFi DHCP enrichment entry."
     }
   },
   "issues": {
@@ -67,6 +70,18 @@
     "networks_missing": {
       "title": "Selected UniFi networks no longer exist",
       "description": "These networks are selected but UniFi no longer lists them: {networks}. They are skipped. Open the integration options and update the selection."
+    }
+  },
+  "services": {
+    "resync": {
+      "name": "Resync clients",
+      "description": "Hand the clients of the selected UniFi networks to Home Assistant's DHCP discovery now, instead of waiting for the next automatic pass. The rate limits still apply.",
+      "fields": {
+        "force": {
+          "name": "Force",
+          "description": "Hand over every client again, even if it was handed over before and DHCP discovery has seen the same data. Use it after setting up an integration, or to see in the logs how each client matches."
+        }
+      }
     }
   }
 }

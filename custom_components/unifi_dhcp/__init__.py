@@ -6,15 +6,49 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.unifi import DOMAIN as UNIFI_DOMAIN
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.core import SupportsResponse
+from homeassistant.exceptions import (
+    ConfigEntryError,
+    ConfigEntryNotReady,
+    ServiceValidationError,
+)
+from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
-from .const import CONF_UNIFI_ENTRY_ID, DOMAIN
+from .const import ATTR_FORCE, CONF_UNIFI_ENTRY_ID, DOMAIN, SERVICE_RESYNC
 from .feed import UnifiDhcpFeed
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import HomeAssistant, ServiceCall
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type UnifiDhcpConfigEntry = ConfigEntry[UnifiDhcpFeed]
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register the service."""
+
+    async def _async_resync(call: ServiceCall) -> dict[str, int]:
+        """Hand the clients of the selected networks to DHCP discovery now."""
+        entries = hass.config_entries.async_loaded_entries(DOMAIN)
+        if not entries:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN, translation_key="no_loaded_entry"
+            )
+        queued = 0
+        for entry in entries:
+            queued += await entry.runtime_data.async_resync(force=call.data[ATTR_FORCE])
+        return {"queued": queued}
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESYNC,
+        _async_resync,
+        schema=vol.Schema({vol.Optional(ATTR_FORCE, default=False): cv.boolean}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: UnifiDhcpConfigEntry) -> bool:

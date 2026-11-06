@@ -1,0 +1,7 @@
+resync:
+  fields:
+    force:
+      required: false
+      default: false
+      selector:
+        boolean:

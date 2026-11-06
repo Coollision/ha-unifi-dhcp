@@ -29,6 +29,7 @@ select = [
 ]
 ignore = [
   "PLR0913", # many arguments are fine in tests/fixtures
+  "PLR0917", # many positional arguments are fine in tests/fixtures
   "PLR2004", # magic values in tests
 ]
 

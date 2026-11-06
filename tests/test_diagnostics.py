@@ -34,7 +34,7 @@ async def test_diagnostics_has_counts_but_no_client_data(
     assert result["entry"]["domain"] == DOMAIN
     assert result["selected_networks"] == [NETWORK_IOT]
     assert result["unifi_available"] is True
-    assert result["last_pass"]["fed"] == 1
+    assert result["last_pass"]["queued"] == 1
     text = str(result)
     for secret in ("aa:bb:cc:00:00:01", "192.0.2.10", "secret-hostname"):
         assert secret not in text

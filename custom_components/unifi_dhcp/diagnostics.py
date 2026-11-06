@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.diagnostics import async_redact_data
 
-from .const import CONF_UNIFI_ENTRY_ID
+from .const import (
+    CLIENT_COOLDOWN,
+    CONF_UNIFI_ENTRY_ID,
+    HANDOVERS_PER_SECOND,
+    MAX_PENDING,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -26,14 +31,22 @@ async def async_get_config_entry_diagnostics(
         "entry": async_redact_data(entry.as_dict(), TO_REDACT),
         "unifi_available": feed.available,
         "selected_networks": sorted(feed.networks),
-        "handed_over_clients": feed.known_clients,
+        "clients_handed_over": feed.known_clients,
+        "handovers_total": feed.handed_over,
+        "queue_length": feed.queue_length,
+        "limits": {
+            "handovers_per_second": HANDOVERS_PER_SECOND,
+            "max_pending": MAX_PENDING,
+            "client_cooldown_seconds": CLIENT_COOLDOWN.total_seconds(),
+        },
         "last_pass": {
             "at": stats.last_resync.isoformat() if stats.last_resync else None,
             "clients": stats.clients,
-            "fed": stats.fed,
+            "queued": stats.queued,
             "unchanged": stats.unchanged,
             "skipped_other_network": stats.skipped_other_network,
             "skipped_no_ipv4": stats.skipped_no_ipv4,
+            "skipped_queue_full": stats.skipped_queue_full,
         },
-        "events_fed_since_last_pass": stats.events_fed,
+        "events_queued_since_last_pass": stats.events_queued,
     }

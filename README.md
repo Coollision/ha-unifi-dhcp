@@ -37,12 +37,37 @@ Change the selection later under **Configure** on the integration. The integrati
 
 ## What it does
 
-- On setup, and every 15 minutes, every UniFi client in a selected network that has an IP address is handed to the `dhcp` integration.
+- On setup, and every 15 minutes, every UniFi client in a selected network that has an IPv4 address is queued for the `dhcp` integration (see [Safety limits](#safety-limits)).
 - Changes are fed live: a client that connects is checked as soon as UniFi reports it.
 - Only the **DHCP hostname** is used. The alias you give a client in UniFi is free text and would make hostname based matchers fire on labels.
 - Only **IPv4** addresses are handed over (this is DHCP discovery). UniFi reports one address per client and it can alternate between a client's IPv4 and IPv6 address.
 - Each IP and hostname combination is passed on once per client. UniFi reports every client as changed every few seconds, and some clients alternate between two hostnames, so repeats are ignored.
 - The `dhcp` integration also ignores data it has already processed, so repeating this does not create duplicate discoveries.
+
+## Safety limits
+
+Home Assistant's own sweep does one burst per hour. This integration is built so it can never flood Home Assistant, however many clients a controller reports. Everything goes through one queue:
+
+| Limit | Value |
+|---|---|
+| Hand-overs to DHCP discovery, over all clients | at most **20 per second** (a token bucket; thousands of clients are spread over minutes) |
+| Hand-overs of the same client | at most **one per minute**, however often UniFi reports a change |
+| Clients waiting in the queue | at most **5000**; the rest is left for the next pass and one warning is logged |
+| Each IP and hostname combination | handed over **once** per client |
+| A pass over a big client table | gives the event loop back every 250 clients |
+
+The limits are constants in `const.py`. Diagnostics show the queue length and how many clients were handed over, queued or skipped.
+
+## Try it with your own devices
+
+Only clients that match a DHCP matcher of some integration (by hostname or by the vendor part of the MAC address) can start a discovery, so most devices, such as phones and laptops, never will. To see it work:
+
+1. Pick a device on a selected network that you have **not** set up in Home Assistant and whose integration offers DHCP discovery.
+2. Turn on debug logging for **both** this integration and **DHCP discovery** (the `dhcp` integration).
+3. Call the service **UniFi DHCP enrichment: Resync clients** (`unifi_dhcp.resync`) with **Force** on.
+4. In the log, `custom_components.unifi_dhcp` shows `Handing over <mac> ... [forced]`, and `homeassistant.components.dhcp` shows `Processing updated address data` and `Matched ...` for that device. A new card then appears under **Settings → Devices & services → Discovered**.
+
+The service also helps after you set up a new integration: DHCP discovery ignores data it has already seen, so a forced resync hands every client over again.
 
 ## Logging
 

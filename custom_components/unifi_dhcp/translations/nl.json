@@ -57,6 +57,9 @@
     },
     "unifi_not_loaded": {
       "message": "De UniFi Network-integratie \"{title}\" is nog niet geladen."
+    },
+    "no_loaded_entry": {
+      "message": "Er is geen geladen UniFi DHCP-verrijking."
     }
   },
   "issues": {
@@ -67,6 +70,18 @@
     "networks_missing": {
       "title": "Geselecteerde UniFi-netwerken bestaan niet meer",
       "description": "Deze netwerken zijn geselecteerd maar UniFi vermeldt ze niet meer: {networks}. Ze worden overgeslagen. Open de opties van de integratie en pas de selectie aan."
+    }
+  },
+  "services": {
+    "resync": {
+      "name": "Clients opnieuw doorgeven",
+      "description": "Geef de clients van de geselecteerde UniFi-netwerken nu aan de DHCP-detectie van Home Assistant door, in plaats van op de volgende automatische ronde te wachten. De snelheidsbeperkingen blijven gelden.",
+      "fields": {
+        "force": {
+          "name": "Forceren",
+          "description": "Geef elke client opnieuw door, ook als dat al eerder gebeurde en de DHCP-detectie dezelfde gegevens al kent. Handig na het instellen van een integratie, of om in de logs te zien hoe elke client matcht."
+        }
+      }
     }
   }
 }

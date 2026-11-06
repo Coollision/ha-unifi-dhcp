@@ -20,15 +20,9 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+import voluptuous as vol
 
 from .const import CONF_NETWORKS, CONF_UNIFI_ENTRY_ID, DOMAIN, LOGGER
-
-# Home Assistant 2026.11 replaced voluptuous by probatio for flow schemas. A schema
-# of the wrong kind renders but is never accepted on submit, so follow what core uses.
-try:
-    import probatio as vol
-except ImportError:  # Home Assistant before 2026.11
-    import voluptuous as vol
 
 if TYPE_CHECKING:
     from homeassistant.components.unifi import UnifiConfigEntry
