@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "UniFi DHCP enrichment",
-        "description": "Choose the UniFi Network integration to read clients from. Their IP address, MAC address and hostname are handed to Home Assistant's DHCP discovery, so devices on networks Home Assistant cannot see directly are discovered too.",
+        "title": "Which UniFi Network?",
+        "description": "You have more than one UniFi Network integration. Choose the one whose clients should be handed to Home Assistant's DHCP discovery. Each is shown by its name and controller address.",
         "data": {
           "unifi_entry_id": "UniFi Network"
         },
@@ -12,8 +12,8 @@
         }
       },
       "networks": {
-        "title": "Networks to enrich from",
-        "description": "Select the UniFi networks whose clients should be fed to DHCP discovery. Nothing is selected by default.",
+        "title": "Which networks?",
+        "description": "Reading from **{unifi}**. Select the networks whose clients should be handed to Home Assistant's DHCP discovery, so devices there are discovered too. Nothing is selected by default.",
         "data": {
           "networks": "Networks"
         },
@@ -35,7 +35,7 @@
     "step": {
       "init": {
         "title": "Networks to enrich from",
-        "description": "Select the UniFi networks whose clients should be fed to DHCP discovery.",
+        "description": "Reading from **{unifi}**. Select the networks whose clients should be handed to Home Assistant's DHCP discovery.",
         "data": {
           "networks": "Networks"
         },

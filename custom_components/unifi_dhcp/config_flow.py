@@ -12,6 +12,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
+from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -31,6 +32,12 @@ except ImportError:  # Home Assistant before 2026.11
 
 if TYPE_CHECKING:
     from homeassistant.components.unifi import UnifiConfigEntry
+
+
+def _entry_label(entry: ConfigEntry) -> str:
+    """Describe a UniFi entry the way a person recognizes it: name and controller."""
+    host = entry.data.get(CONF_HOST)
+    return f"{entry.title} ({host})" if host else entry.title
 
 
 async def _async_network_options(
@@ -109,6 +116,10 @@ class UnifiDhcpConfigFlow(ConfigFlow, domain=DOMAIN):
         if not loaded:
             return self.async_abort(reason="no_unifi_entry")
 
+        # With a single UniFi entry there is nothing to choose, so skip the step.
+        if user_input is None and len(loaded) == 1:
+            user_input = {CONF_UNIFI_ENTRY_ID: loaded[0].entry_id}
+
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_UNIFI_ENTRY_ID])
             self._abort_if_unique_id_configured()
@@ -123,7 +134,7 @@ class UnifiDhcpConfigFlow(ConfigFlow, domain=DOMAIN):
                         SelectSelectorConfig(
                             options=[
                                 SelectOptionDict(
-                                    value=entry.entry_id, label=entry.title
+                                    value=entry.entry_id, label=_entry_label(entry)
                                 )
                                 for entry in loaded
                             ],
@@ -151,7 +162,7 @@ class UnifiDhcpConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if user_input[CONF_NETWORKS]:
                 return self.async_create_entry(
-                    title=unifi_entry.title,
+                    title=_entry_label(unifi_entry),
                     data={CONF_UNIFI_ENTRY_ID: self._unifi_entry_id},
                     options={CONF_NETWORKS: user_input[CONF_NETWORKS]},
                 )
@@ -160,6 +171,7 @@ class UnifiDhcpConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="networks",
             data_schema=_networks_schema(options),
+            description_placeholders={"unifi": _entry_label(unifi_entry)},
             errors=errors,
         )
 
@@ -190,5 +202,6 @@ class UnifiDhcpOptionsFlow(OptionsFlowWithReload):
             data_schema=self.add_suggested_values_to_schema(
                 _networks_schema(options), self.config_entry.options
             ),
+            description_placeholders={"unifi": _entry_label(unifi_entry)},
             errors=errors,
         )

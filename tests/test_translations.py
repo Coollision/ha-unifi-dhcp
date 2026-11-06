@@ -45,6 +45,8 @@ REQUIRED = [
 ]
 
 PLACEHOLDERS = {
+    "config.step.networks.description": {"unifi"},
+    "options.step.init.description": {"unifi"},
     "exceptions.unifi_not_loaded.message": {"title"},
     f"issues.{ISSUE_UNIFI_UNAVAILABLE}.description": {"title"},
     f"issues.{ISSUE_NETWORKS_MISSING}.description": {"networks"},

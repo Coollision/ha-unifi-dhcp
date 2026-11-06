@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "UniFi DHCP-verrijking",
-        "description": "Kies de UniFi Network-integratie waaruit clients worden gelezen. Hun IP-adres, MAC-adres en hostnaam worden doorgegeven aan de DHCP-detectie van Home Assistant, zodat ook apparaten op netwerken die Home Assistant niet rechtstreeks ziet worden ontdekt.",
+        "title": "Welke UniFi Network?",
+        "description": "Je hebt meer dan één UniFi Network-integratie. Kies degene waarvan de clients aan de DHCP-detectie van Home Assistant moeten worden doorgegeven. Elke staat er met naam en controller-adres.",
         "data": {
           "unifi_entry_id": "UniFi Network"
         },
@@ -12,8 +12,8 @@
         }
       },
       "networks": {
-        "title": "Netwerken om uit te verrijken",
-        "description": "Selecteer de UniFi-netwerken waarvan de clients aan de DHCP-detectie moeten worden doorgegeven. Standaard is er niets geselecteerd.",
+        "title": "Welke netwerken?",
+        "description": "Leest uit **{unifi}**. Selecteer de netwerken waarvan de clients aan de DHCP-detectie van Home Assistant moeten worden doorgegeven, zodat apparaten daar ook worden ontdekt. Standaard is er niets geselecteerd.",
         "data": {
           "networks": "Netwerken"
         },
@@ -35,7 +35,7 @@
     "step": {
       "init": {
         "title": "Netwerken om uit te verrijken",
-        "description": "Selecteer de UniFi-netwerken waarvan de clients aan de DHCP-detectie moeten worden doorgegeven.",
+        "description": "Leest uit **{unifi}**. Selecteer de netwerken waarvan de clients aan de DHCP-detectie van Home Assistant moeten worden doorgegeven.",
         "data": {
           "networks": "Netwerken"
         },

@@ -23,37 +23,73 @@ from .conftest import (
 )
 
 
+def _network_options(result: dict) -> list[dict]:
+    """Return the options of the networks multi select of a form result."""
+    schema = result["data_schema"].schema
+    return schema[next(key for key in schema if key == CONF_NETWORKS)].config["options"]
+
+
+async def _start(hass: HomeAssistant) -> dict:
+    return await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+
+
 async def test_abort_without_unifi(hass: HomeAssistant) -> None:
     """Without a loaded UniFi entry the flow cannot continue."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    result = await _start(hass)
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "no_unifi_entry"
+
+
+async def test_single_unifi_entry_skips_the_picker(
+    hass: HomeAssistant, unifi_entry: MockConfigEntry
+) -> None:
+    """With one UniFi entry the flow goes straight to the networks."""
+    result = await _start(hass)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "networks"
+    assert result["description_placeholders"] == {"unifi": "UniFi"}
+
+
+async def test_several_unifi_entries_are_offered_as_a_dropdown(
+    hass: HomeAssistant, unifi_entry: MockConfigEntry
+) -> None:
+    """With more than one UniFi entry the user picks which one to read."""
+    other = MockConfigEntry(
+        domain="unifi", entry_id="other", title="Site B", data={"host": "192.0.2.7"}
+    )
+    other.add_to_hass(hass)
+    other.mock_state(hass, ConfigEntryState.LOADED)
+    other.runtime_data = unifi_entry.runtime_data
+
+    result = await _start(hass)
+
+    assert result["step_id"] == "user"
+    schema = result["data_schema"].schema
+    entries = schema[next(key for key in schema if key == CONF_UNIFI_ENTRY_ID)]
+    assert {option["label"] for option in entries.config["options"]} == {
+        "UniFi",
+        "Site B (192.0.2.7)",
+    }
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_UNIFI_ENTRY_ID: "other"}
+    )
+    assert result["step_id"] == "networks"
 
 
 async def test_full_flow_with_no_preselected_networks(
     hass: HomeAssistant, unifi_entry: MockConfigEntry
 ) -> None:
     """Networks must be chosen explicitly and nothing is pre-selected."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    assert result["step_id"] == "user"
-    schema = result["data_schema"].schema
-    entries = schema[next(key for key in schema if key == CONF_UNIFI_ENTRY_ID)]
-    assert entries.config["options"] == [{"value": UNIFI_ENTRY_ID, "label": "UniFi"}]
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_UNIFI_ENTRY_ID: UNIFI_ENTRY_ID}
-    )
-    assert result["type"] is FlowResultType.FORM
+    result = await _start(hass)
     assert result["step_id"] == "networks"
+
     schema = result["data_schema"].schema
     marker = next(key for key in schema if key == CONF_NETWORKS)
     assert marker.default is vol.UNDEFINED  # nothing is pre-selected
-    options = schema[marker].config["options"]
+    options = _network_options(result)
     assert {option["value"] for option in options} == {NETWORK_LAN, NETWORK_IOT}
     assert {option["label"] for option in options} == {"LAN (VLAN 5)", "IoT (VLAN 40)"}
 
@@ -81,18 +117,9 @@ async def test_networks_fall_back_to_client_networks(
     api.clients["aa:bb:cc:00:00:01"] = make_client("aa:bb:cc:00:00:01", "192.0.2.1")
     api.clients["aa:bb:cc:00:00:01"].raw["network"] = "IoT"
 
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_UNIFI_ENTRY_ID: UNIFI_ENTRY_ID}
-    )
+    result = await _start(hass)
 
-    schema = result["data_schema"].schema
-    options = schema[next(key for key in schema if key == CONF_NETWORKS)].config[
-        "options"
-    ]
-    assert options == [{"value": NETWORK_IOT, "label": "IoT"}]
+    assert _network_options(result) == [{"value": NETWORK_IOT, "label": "IoT"}]
 
 
 async def test_abort_when_no_networks_at_all(
@@ -101,12 +128,7 @@ async def test_abort_when_no_networks_at_all(
     """Without any network to choose from the flow stops."""
     unifi_entry.runtime_data.api.networks.clear()
 
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_UNIFI_ENTRY_ID: UNIFI_ENTRY_ID}
-    )
+    result = await _start(hass)
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "no_networks"
@@ -116,12 +138,7 @@ async def test_one_entry_per_unifi_entry(
     hass: HomeAssistant, unifi_entry: MockConfigEntry, config_entry: MockConfigEntry
 ) -> None:
     """The same UniFi entry cannot be linked twice."""
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_UNIFI_ENTRY_ID: UNIFI_ENTRY_ID}
-    )
+    result = await _start(hass)
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
