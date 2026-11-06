@@ -257,3 +257,57 @@ async def test_unload_cleans_up(
     assert clients.callbacks == []
     issue_id = f"{ISSUE_UNIFI_UNAVAILABLE}_{config_entry.entry_id}"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_unchanged_clients_are_not_fed_again(
+    hass: HomeAssistant,
+    dhcp_data: DHCPData,
+    unifi_entry: MockConfigEntry,
+    config_entry: MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """UniFi reports every client every few seconds, but only changes are passed on."""
+    clients = unifi_entry.runtime_data.api.clients
+    clients["aa:bb:cc:00:00:01"] = make_client(
+        "aa:bb:cc:00:00:01", "192.0.2.10", "plug", NETWORK_IOT
+    )
+    await _setup(hass, config_entry)
+    feed = config_entry.runtime_data
+    caplog.clear()
+
+    with patch.object(
+        type(feed), "async_process_client", wraps=feed.async_process_client
+    ) as process:
+        for _ in range(5):
+            clients.emit(ItemEvent.CHANGED, "aa:bb:cc:00:00:01")
+        process.assert_not_called()
+        assert caplog.text.count("handed over") == 0
+
+        clients["aa:bb:cc:00:00:01"] = make_client(
+            "aa:bb:cc:00:00:01", "192.0.2.11", "plug", NETWORK_IOT
+        )
+        clients.emit(ItemEvent.CHANGED, "aa:bb:cc:00:00:01")
+        process.assert_called_once_with("192.0.2.11", "plug", "aa:bb:cc:00:00:01")
+
+    assert feed.known_clients == 1
+    assert feed.stats.events_fed == 1
+
+
+async def test_pass_counters_are_per_pass(
+    hass: HomeAssistant,
+    dhcp_data: DHCPData,
+    unifi_entry: MockConfigEntry,
+    config_entry: MockConfigEntry,
+) -> None:
+    """A second pass reports the same clients as unchanged, not as fed again."""
+    unifi_entry.runtime_data.api.clients["aa:bb:cc:00:00:01"] = make_client(
+        "aa:bb:cc:00:00:01", "192.0.2.10", "plug", NETWORK_IOT
+    )
+    await _setup(hass, config_entry)
+    assert config_entry.runtime_data.stats.fed == 1
+
+    async_fire_time_changed(hass, dt_util.utcnow() + RESYNC_INTERVAL)
+    await hass.async_block_till_done()
+
+    stats = config_entry.runtime_data.stats
+    assert (stats.clients, stats.fed, stats.unchanged) == (1, 0, 1)

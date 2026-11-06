@@ -33,13 +33,23 @@ if TYPE_CHECKING:
     from homeassistant.components.unifi.hub import UnifiHub
 
 
+# The outcomes double as the FeedStats counter they increment.
+OUTCOME_FED = "fed"
+OUTCOME_UNCHANGED = "unchanged"
+OUTCOME_OTHER_NETWORK = "skipped_other_network"
+OUTCOME_NO_IP = "skipped_no_ip"
+
+
 @dataclass(slots=True)
 class FeedStats:
-    """Counters since the start of the last full pass."""
+    """What the last full pass did, plus what live events did since then."""
 
+    clients: int = 0
     fed: int = 0
+    unchanged: int = 0
     skipped_other_network: int = 0
     skipped_no_ip: int = 0
+    events_fed: int = 0
     last_resync: datetime | None = None
 
 
@@ -68,12 +78,20 @@ class UnifiDhcpFeed(WatcherBase):
         self._resync_unsub: Callable[[], None] | None = None
         self._available = True
         self._missing_networks: frozenset[str] = frozenset()
+        # What was last handed over per MAC. UniFi reports a change for every client
+        # every few seconds (traffic counters), so only new or changed data goes on.
+        self._fed: dict[str, tuple[str, str]] = {}
         self.stats = FeedStats()
 
     @property
     def networks(self) -> frozenset[str]:
         """Return the UniFi network ids that are fed."""
         return self._networks
+
+    @property
+    def known_clients(self) -> int:
+        """Return how many clients have been handed to the dhcp integration."""
+        return len(self._fed)
 
     @property
     def available(self) -> bool:
@@ -149,26 +167,32 @@ class UnifiDhcpFeed(WatcherBase):
         """Feed a single client that UniFi reported as added or changed."""
         if self._hub is None or (client := self._hub.api.clients.get(mac)) is None:
             return
-        LOGGER.debug("UniFi client %s event: %s", mac, event.value)
-        self._async_feed_client(client)
+        if self._async_feed_client(client, log_skips=False) == OUTCOME_FED:
+            LOGGER.debug("UniFi client %s %s, handed over", mac, event.value)
+            self.stats.events_fed += 1
 
     @callback
-    def _async_feed_client(self, client: Client) -> None:
-        """Hand one client to the dhcp integration if it is in a selected network."""
+    def _async_feed_client(self, client: Client, *, log_skips: bool = True) -> str:
+        """Hand one client to the dhcp integration if it is in a selected network.
+
+        Returns what happened, so a pass can count it.
+        """
         network_id = client.raw.get("network_id")
         if network_id not in self._networks:
-            self.stats.skipped_other_network += 1
-            LOGGER.debug(
-                "Skipping %s: network %s is not selected", client.mac, network_id
-            )
-            return
+            if log_skips:
+                LOGGER.debug(
+                    "Skipping %s: network %s is not selected", client.mac, network_id
+                )
+            return OUTCOME_OTHER_NETWORK
         if not (ip_address := client.ip):
-            self.stats.skipped_no_ip += 1
-            LOGGER.debug("Skipping %s: UniFi reports no IP address", client.mac)
-            return
+            if log_skips:
+                LOGGER.debug("Skipping %s: UniFi reports no IP address", client.mac)
+            return OUTCOME_NO_IP
         # Only the DHCP hostname is used. The alias (``name``) is free text and would
         # make hostname based matchers fire on arbitrary labels.
         hostname = client.hostname
+        if self._fed.get(client.mac) == (ip_address, hostname):
+            return OUTCOME_UNCHANGED
         LOGGER.debug(
             "Feeding %s (ip=%s, hostname=%r) from network %s",
             client.mac,
@@ -177,7 +201,8 @@ class UnifiDhcpFeed(WatcherBase):
             network_id,
         )
         self.async_process_client(ip_address, hostname, client.mac)
-        self.stats.fed += 1
+        self._fed[client.mac] = (ip_address, hostname)
+        return OUTCOME_FED
 
     @callback
     def _async_set_available(self, available: bool, reason: str) -> None:
@@ -248,17 +273,23 @@ class UnifiDhcpFeed(WatcherBase):
 
         await self._async_check_networks(hub)
 
-        self.stats = FeedStats(last_resync=dt_util.utcnow())
         clients = list(hub.api.clients.values())
-        LOGGER.debug("Feeding %d UniFi client(s) to the dhcp integration", len(clients))
+        stats = FeedStats(clients=len(clients), last_resync=dt_util.utcnow())
+        LOGGER.debug("Pass over %d UniFi client(s)", len(clients))
         for client in clients:
             try:
-                self._async_feed_client(client)
+                outcome = self._async_feed_client(client)
             except Exception:  # noqa: BLE001 - one bad client must not stop the pass
                 LOGGER.exception("Failed to feed UniFi client %s", client.mac)
+                continue
+            setattr(stats, outcome, getattr(stats, outcome) + 1)
+        self.stats = stats
         LOGGER.debug(
-            "Pass done: fed=%d skipped_other_network=%d skipped_no_ip=%d",
-            self.stats.fed,
-            self.stats.skipped_other_network,
-            self.stats.skipped_no_ip,
+            "Pass done: clients=%d fed=%d unchanged=%d skipped_other_network=%d "
+            "skipped_no_ip=%d",
+            stats.clients,
+            stats.fed,
+            stats.unchanged,
+            stats.skipped_other_network,
+            stats.skipped_no_ip,
         )

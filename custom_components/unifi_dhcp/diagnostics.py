@@ -26,10 +26,14 @@ async def async_get_config_entry_diagnostics(
         "entry": async_redact_data(entry.as_dict(), TO_REDACT),
         "unifi_available": feed.available,
         "selected_networks": sorted(feed.networks),
+        "handed_over_clients": feed.known_clients,
         "last_pass": {
             "at": stats.last_resync.isoformat() if stats.last_resync else None,
+            "clients": stats.clients,
             "fed": stats.fed,
+            "unchanged": stats.unchanged,
             "skipped_other_network": stats.skipped_other_network,
             "skipped_no_ip": stats.skipped_no_ip,
         },
+        "events_fed_since_last_pass": stats.events_fed,
     }
