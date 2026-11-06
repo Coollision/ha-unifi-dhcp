@@ -66,7 +66,7 @@ async def test_only_selected_networks_are_fed(
         "aabbcc000001": {"ip": "192.0.2.10", "hostname": "plug"}
     }
     stats = config_entry.runtime_data.stats
-    assert (stats.fed, stats.skipped_other_network, stats.skipped_no_ip) == (1, 2, 1)
+    assert (stats.fed, stats.skipped_other_network, stats.skipped_no_ipv4) == (1, 2, 1)
 
 
 async def test_matcher_hit_starts_a_discovery_flow(
@@ -311,3 +311,51 @@ async def test_pass_counters_are_per_pass(
 
     stats = config_entry.runtime_data.stats
     assert (stats.clients, stats.fed, stats.unchanged) == (1, 0, 1)
+
+
+async def test_only_ipv4_addresses_are_fed(
+    hass: HomeAssistant,
+    dhcp_data: DHCPData,
+    unifi_entry: MockConfigEntry,
+    config_entry: MockConfigEntry,
+) -> None:
+    """UniFi may report a client's IPv6 address in ``ip``; DHCP discovery needs IPv4."""
+    clients = unifi_entry.runtime_data.api.clients
+    clients["aa:bb:cc:00:00:01"] = make_client(
+        "aa:bb:cc:00:00:01", "2001:db8::1", "phone", NETWORK_IOT
+    )
+    await _setup(hass, config_entry)
+    assert dhcp_data.address_data == {}
+    assert config_entry.runtime_data.stats.skipped_no_ipv4 == 1
+
+    clients["aa:bb:cc:00:00:01"] = make_client(
+        "aa:bb:cc:00:00:01", "192.0.2.10", "phone", NETWORK_IOT
+    )
+    clients.emit(ItemEvent.CHANGED, "aa:bb:cc:00:00:01")
+
+    assert dhcp_data.address_data == {
+        "aabbcc000001": {"ip": "192.0.2.10", "hostname": "phone"}
+    }
+
+
+async def test_alternating_values_are_fed_once_each(
+    hass: HomeAssistant,
+    dhcp_data: DHCPData,
+    unifi_entry: MockConfigEntry,
+    config_entry: MockConfigEntry,
+) -> None:
+    """A client that flips between two hostnames is not re-fed on every flip."""
+    clients = unifi_entry.runtime_data.api.clients
+    await _setup(hass, config_entry)
+    feed = config_entry.runtime_data
+
+    with patch.object(
+        type(feed), "async_process_client", wraps=feed.async_process_client
+    ) as process:
+        for hostname in ("lamp-a", "lamp-b", "lamp-a", "lamp-b", "lamp-a"):
+            clients["aa:bb:cc:00:00:01"] = make_client(
+                "aa:bb:cc:00:00:01", "192.0.2.10", hostname, NETWORK_IOT
+            )
+            clients.emit(ItemEvent.CHANGED, "aa:bb:cc:00:00:01")
+
+    assert process.call_count == 2

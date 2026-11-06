@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from ipaddress import IPv4Address
 from typing import TYPE_CHECKING
 
 from aiounifi import AiounifiException
@@ -33,11 +34,26 @@ if TYPE_CHECKING:
     from homeassistant.components.unifi.hub import UnifiHub
 
 
+# A client that keeps changing address or hostname must not grow the memory forever.
+MAX_VALUES_PER_CLIENT = 8
+
 # The outcomes double as the FeedStats counter they increment.
 OUTCOME_FED = "fed"
 OUTCOME_UNCHANGED = "unchanged"
 OUTCOME_OTHER_NETWORK = "skipped_other_network"
-OUTCOME_NO_IP = "skipped_no_ip"
+OUTCOME_NO_IPV4 = "skipped_no_ipv4"
+
+
+def _ipv4(address: str) -> str:
+    """Return the address if it is IPv4, else an empty string.
+
+    UniFi reports a single ``ip`` that can alternate between a client's IPv4 and its
+    global IPv6 address. DHCP discovery is about DHCPv4, so only IPv4 is handed over.
+    """
+    try:
+        return address if IPv4Address(address) else ""
+    except ValueError:
+        return ""
 
 
 @dataclass(slots=True)
@@ -48,7 +64,7 @@ class FeedStats:
     fed: int = 0
     unchanged: int = 0
     skipped_other_network: int = 0
-    skipped_no_ip: int = 0
+    skipped_no_ipv4: int = 0
     events_fed: int = 0
     last_resync: datetime | None = None
 
@@ -78,9 +94,10 @@ class UnifiDhcpFeed(WatcherBase):
         self._resync_unsub: Callable[[], None] | None = None
         self._available = True
         self._missing_networks: frozenset[str] = frozenset()
-        # What was last handed over per MAC. UniFi reports a change for every client
-        # every few seconds (traffic counters), so only new or changed data goes on.
-        self._fed: dict[str, tuple[str, str]] = {}
+        # What was handed over per MAC. UniFi reports a change for every client every
+        # few seconds (traffic counters), and some clients alternate between two
+        # hostnames or addresses, so a value is only passed on the first time.
+        self._fed: dict[str, set[tuple[str, str]]] = {}
         self.stats = FeedStats()
 
     @property
@@ -184,14 +201,15 @@ class UnifiDhcpFeed(WatcherBase):
                     "Skipping %s: network %s is not selected", client.mac, network_id
                 )
             return OUTCOME_OTHER_NETWORK
-        if not (ip_address := client.ip):
+        if not (ip_address := _ipv4(client.ip)):
             if log_skips:
-                LOGGER.debug("Skipping %s: UniFi reports no IP address", client.mac)
-            return OUTCOME_NO_IP
+                LOGGER.debug("Skipping %s: no IPv4 address (%r)", client.mac, client.ip)
+            return OUTCOME_NO_IPV4
         # Only the DHCP hostname is used. The alias (``name``) is free text and would
         # make hostname based matchers fire on arbitrary labels.
         hostname = client.hostname
-        if self._fed.get(client.mac) == (ip_address, hostname):
+        handed = self._fed.setdefault(client.mac, set())
+        if (ip_address, hostname) in handed:
             return OUTCOME_UNCHANGED
         LOGGER.debug(
             "Feeding %s (ip=%s, hostname=%r) from network %s",
@@ -201,7 +219,9 @@ class UnifiDhcpFeed(WatcherBase):
             network_id,
         )
         self.async_process_client(ip_address, hostname, client.mac)
-        self._fed[client.mac] = (ip_address, hostname)
+        if len(handed) >= MAX_VALUES_PER_CLIENT:
+            handed.clear()
+        handed.add((ip_address, hostname))
         return OUTCOME_FED
 
     @callback
@@ -286,10 +306,10 @@ class UnifiDhcpFeed(WatcherBase):
         self.stats = stats
         LOGGER.debug(
             "Pass done: clients=%d fed=%d unchanged=%d skipped_other_network=%d "
-            "skipped_no_ip=%d",
+            "skipped_no_ipv4=%d",
             stats.clients,
             stats.fed,
             stats.unchanged,
             stats.skipped_other_network,
-            stats.skipped_no_ip,
+            stats.skipped_no_ipv4,
         )

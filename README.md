@@ -40,7 +40,9 @@ Change the selection later under **Configure** on the integration. The integrati
 - On setup, and every 15 minutes, every UniFi client in a selected network that has an IP address is handed to the `dhcp` integration.
 - Changes are fed live: a client that connects is checked as soon as UniFi reports it.
 - Only the **DHCP hostname** is used. The alias you give a client in UniFi is free text and would make hostname based matchers fire on labels.
-- The `dhcp` integration ignores data it has already processed, so repeating this is cheap and does not create duplicate discoveries.
+- Only **IPv4** addresses are handed over (this is DHCP discovery). UniFi reports one address per client and it can alternate between a client's IPv4 and IPv6 address.
+- Each IP and hostname combination is passed on once per client. UniFi reports every client as changed every few seconds, and some clients alternate between two hostnames, so repeats are ignored.
+- The `dhcp` integration also ignores data it has already processed, so repeating this does not create duplicate discoveries.
 
 ## Logging
 

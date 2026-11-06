@@ -33,7 +33,7 @@ async def async_get_config_entry_diagnostics(
             "fed": stats.fed,
             "unchanged": stats.unchanged,
             "skipped_other_network": stats.skipped_other_network,
-            "skipped_no_ip": stats.skipped_no_ip,
+            "skipped_no_ipv4": stats.skipped_no_ipv4,
         },
         "events_fed_since_last_pass": stats.events_fed,
     }
